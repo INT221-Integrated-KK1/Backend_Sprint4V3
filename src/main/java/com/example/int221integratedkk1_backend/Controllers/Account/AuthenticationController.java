@@ -3,7 +3,6 @@ package com.example.int221integratedkk1_backend.Controllers.Account;
 import com.example.int221integratedkk1_backend.DTOS.JwtRequestUser;
 import com.example.int221integratedkk1_backend.DTOS.JwtResponseToken;
 import com.example.int221integratedkk1_backend.Entities.Account.AuthUser;
-import com.example.int221integratedkk1_backend.Entities.Account.UsersEntity;
 import com.example.int221integratedkk1_backend.Exception.UnauthorizedException;
 import com.example.int221integratedkk1_backend.Services.Account.JwtTokenUtil;
 import com.example.int221integratedkk1_backend.Services.Account.JwtUserDetailsService;
@@ -19,8 +18,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.List;
 
 @CrossOrigin(origins = {"http://localhost:5173", "http://ip23kk1.sit.kmutt.ac.th", "http://intproj23.sit.kmutt.ac.th", "http://intproj23.sit.kmutt.ac.th:8080", "http://ip23kk1.sit.kmutt.ac.th:8080"})
 //@CrossOrigin(origins = {"http://localhost:5173", "https://ip23kk1.sit.kmutt.ac.th", "https://intproj23.sit.kmutt.ac.th", "https://intproj23.sit.kmutt.ac.th:8080", "https://ip23kk1.sit.kmutt.ac.th:8080"})
