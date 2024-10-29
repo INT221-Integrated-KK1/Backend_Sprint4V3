@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -306,19 +307,19 @@ public class BoardController {
             userId = jwtTokenUtil.getUserIdFromToken(jwtToken);
         }
 
-        // Public board: Allow non-authenticated users to view the collaborator list
+
         if (board.getVisibility() == Visibility.PUBLIC) {
             List<CollabDTO> collaborators = collabService.getCollaborators(boardId);
             return ResponseEntity.ok(collaborators);
         }
 
-        // For private boards, check if the user is the owner or a collaborator
+
         if (userId != null && (board.getOwnerId().equals(userId) || collabService.isCollaborator(boardId, userId))) {
             List<CollabDTO> collaborators = collabService.getCollaborators(boardId);
             return ResponseEntity.ok(collaborators);
         }
 
-        // User is neither the owner nor a collaborator of a private board
+
         throw new UnauthorizedException("You are not authorized to view collaborators of this board");
     }
 
@@ -337,7 +338,7 @@ public class BoardController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
         }
 
-        Optional<Collaborator> collaborator = collabService.getCollaboratorByBoardIdAndCollabId(boardId, collabId);
+        Optional<Collaborator> collaborator = collabService.getCollaboratorByBoardIdAndCollaboratorId(boardId, collabId);
 
         if (collaborator.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
@@ -378,6 +379,39 @@ public class BoardController {
 
         Collaborator collaborator = collabService.addCollaborator(boardId, collabRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(collaborator);
+    }
+
+    @PatchMapping("/{boardId}/collabs/{collabId}")
+    public ResponseEntity<?> updateCollaboratorAccess(
+            @PathVariable String boardId,
+            @PathVariable String collabId,
+            @RequestBody(required = false) Map<String, String> body,
+            @RequestHeader(value = "Authorization", required = false) String requestTokenHeader) {
+
+        String userId = getUserIdFromToken(requestTokenHeader);
+
+
+        BoardEntity board = boardService.getBoardById(boardId);
+        if (!board.getOwnerId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only the board owner can update collaborator access rights.");
+        }
+
+
+        String accessRight = body != null ? body.get("accessRight") : null;
+        if (accessRight == null || !(accessRight.equalsIgnoreCase("READ") || accessRight.equalsIgnoreCase("WRITE"))) {
+            return ResponseEntity.badRequest().body("Invalid access right. Must be 'READ' or 'WRITE'.");
+        }
+
+
+        Collaborator collaborator = collabService.updateCollaboratorAccess(boardId, collabId, accessRight);
+        return ResponseEntity.ok(collaborator);
+    }
+
+
+    @DeleteMapping("/{boardId}/collabs/{collab_oid}")
+    public ResponseEntity<?> removeCollaborator(@PathVariable String boardId, @PathVariable String collab_oid, @RequestHeader("Authorization") String token) {
+        String userId = getUserIdFromToken(token);
+        return collabService.removeCollaborator(boardId, collab_oid, userId);
     }
 
     private String getUserIdFromToken(String requestTokenHeader) {
