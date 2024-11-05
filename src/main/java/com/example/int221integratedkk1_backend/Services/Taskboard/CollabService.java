@@ -14,6 +14,7 @@ import com.example.int221integratedkk1_backend.Repositories.Taskboard.BoardRepos
 import com.example.int221integratedkk1_backend.Entities.Account.UsersEntity;
 import com.example.int221integratedkk1_backend.Services.Account.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -120,19 +121,92 @@ public Optional<Collaborator> getCollaboratorByBoardIdAndCollaboratorId(String b
         return collabRepository.save(collaborator);
     }
 
+//    public ResponseEntity<?> removeCollaborator(String boardId, String collabOid, String userId) {
+//        //logger.info("Attempting to remove collaborator: {}, by user: {} on board: {}", collabOid, userId, boardId);
+//
+//        // Retrieve the board
+//        BoardEntity board = getBoardById(boardId);
+//
+//        // Find the collaborator to be removed
+//        Collaborator collaborator = collabRepository.findByBoardIdAndCollabsId(boardId, collabOid)
+//                .orElseThrow(() -> {
+//                    //logger.warn("Collaborator with ID: {} not found on board: {}", collabOid, boardId);
+//                    return new ItemNotFoundException("Collaborator not found on this board.");
+//                });
+//
+//        // Check if the requester is the board owner
+//        if (board.getOwnerId().equals(userId)) {
+//            //logger.info("User {} is the owner of the board. Proceeding to remove collaborator.", userId);
+//            // Allow the owner to remove any collaborator
+//            collabRepository.delete(collaborator);
+//            return ResponseEntity.ok("Collaborator removed successfully.");
+//        }
+//
+//        // Check if the requester is a WRITE collaborator trying to remove another collaborator
+//        Optional<AccessRight> requesterAccessRight = getAccessRight(boardId, userId);
+//        if (requesterAccessRight.isPresent()) {
+//            AccessRight accessRight = requesterAccessRight.get();
+//            //logger.info("User {} has {} access on board {}", userId, accessRight, boardId);
+//
+//            if (accessRight == AccessRight.WRITE && !collabOid.equals(userId)) {
+//                // WRITE collaborators cannot remove others, only themselves
+//                //logger.warn("WRITE collaborator {} attempted to remove another collaborator {}. Returning 403 FORBIDDEN.", userId, collabOid);
+//                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Insufficient permissions to remove this collaborator.");
+//            }
+//
+//            if (accessRight == AccessRight.WRITE && collabOid.equals(userId)) {
+//                // Allow WRITE collaborators to remove themselves (leave the board)
+//                //logger.info("WRITE collaborator {} is removing themselves from the board {}", userId, boardId);
+//                collabRepository.delete(collaborator);
+//                return ResponseEntity.ok("You have left the board.");
+//            }
+//        } else {
+//           // logger.warn("User {} is not a recognized collaborator on board {}", userId, boardId);
+//            // Not a valid collaborator, return forbidden
+//            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
+//        }
+//
+//        // Default response if conditions above are not met
+//        //logger.warn("Unexpected case for user {} attempting to remove collaborator {} on board {}. Returning 403 FORBIDDEN.", userId, collabOid, boardId);
+//        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
+//    }
 
-    public ResponseEntity<?> removeCollaborator(String boardId, String collabOid, String userId) {
+
+    public ResponseEntity<?> removeCollaborator(String boardId, String collabId, String userId) {
+        //logger.info("Attempting to remove collaborator: {}, by user: {} on board: {}", collabOid, userId, boardId);
+
+        // Retrieve the board
         BoardEntity board = getBoardById(boardId);
 
-        Collaborator collaborator = collabRepository.findByBoardIdAndCollabsId(boardId, collabOid).orElseThrow(() -> new ItemNotFoundException("Collaborator not found on this board."));
+        // Find the collaborator to be removed
+        Collaborator collaborator = collabRepository.findByBoardIdAndCollabsId(boardId, collabId)
+                .orElseThrow(() -> {
+                    //logger.warn("Collaborator with ID: {} not found on board: {}", collabOid, boardId);
+                    return new ItemNotFoundException("Collaborator not found on this board.");
+                });
 
-        if (!board.getOwnerId().equals(userId) && !collabOid.equals(userId)) {
-            throw new UnauthorizedException("You do not have permission to remove this collaborator.");
+
+        // Check if the requester is the board owner
+        if (board.getOwnerId().equals(userId)) {
+            //logger.info("User {} is the owner of the board. Proceeding to remove collaborator.", userId);
+            // Allow the owner to remove any collaborator
+            collabRepository.delete(collaborator);
+            return ResponseEntity.ok("Collaborator removed successfully.");
         }
 
-        collabRepository.delete(collaborator);
-        return null;
+        // Check if the requester is trying to remove themselves (leave the board)
+        if (collabId.equals(userId)) {
+            // Allow both READ and WRITE collaborators to remove themselves
+            //logger.info("Collaborator {} is removing themselves from the board {}", userId, boardId);
+            collabRepository.delete(collaborator);
+            return ResponseEntity.ok("You have left the board.");
+        }
+
+        // If the user is not the owner and is not removing themselves, deny the action
+        //logger.warn("User {} attempted to remove another collaborator {} without sufficient permissions. Returning 403 FORBIDDEN.", userId, collabOid);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
     }
+
 
     private BoardEntity getBoardById(String boardId) {
         return boardRepository.findById(boardId).orElseThrow(() -> new ItemNotFoundException("Board not found with ID: " + boardId));

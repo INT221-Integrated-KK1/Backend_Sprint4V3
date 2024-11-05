@@ -125,6 +125,94 @@ public class VisibilityFilter extends OncePerRequestFilter {
     @Autowired
     private CollabService collabService;
 
+//    @Override
+//    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+//        String requestURI = request.getRequestURI();
+//        String method = request.getMethod();
+//
+//        if (requestURI.matches("/v3/boards/([^/]+)(/.*)?")) {
+//            String boardId = requestURI.split("/")[3];
+//            Optional<BoardEntity> boardOptional = boardRepository.findById(boardId);
+//
+//            if (boardOptional.isPresent()) {
+//                BoardEntity board = boardOptional.get();
+//
+//                // Allow GET access to public boards without authentication
+//                if (board.getVisibility() == Visibility.PUBLIC && method.equals("GET")) {
+//                    filterChain.doFilter(request, response);
+//                    return;
+//                }
+//
+//                // For private boards, require authentication
+//                String authorizationHeader = request.getHeader("Authorization");
+//
+//                if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+//                    String jwtToken = authorizationHeader.substring(7);
+//
+//                    try {
+//                        String userIdFromToken = jwtTokenUtil.getUserIdFromToken(jwtToken);
+//
+//                        // Check if the user is the board owner
+//                        if (board.getOwnerId().equals(userIdFromToken)) {
+//                            filterChain.doFilter(request, response);
+//                            return;
+//                        }
+//
+//                        // Check if user is a collaborator and get their access rights
+//                        Optional<AccessRight> accessRightOpt = collabService.getAccessRight(boardId, userIdFromToken);
+//                        if (accessRightOpt.isPresent()) {
+//                            AccessRight accessRight = accessRightOpt.get();
+//
+//                            // WRITE collaborators can modify tasks and statuses but not the board itself
+//                            if (accessRight == AccessRight.WRITE) {
+//                                if (isBoardModificationRequest(requestURI, method)) {
+//                                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Insufficient permissions to modify board properties.");
+//                                    return;
+//                                }
+//                                // Allow access for task and status operations
+//                                filterChain.doFilter(request, response);
+//                                return;
+//                            }
+//
+//                            // READ collaborators are restricted from modifying tasks, statuses, and board properties
+//                            if (accessRight == AccessRight.READ) {
+//                                if (isWriteOperation(method)) {
+//                                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Insufficient permissions to modify this board.");
+//                                    return;
+//                                }
+//                                // Allow read-only access
+//                                filterChain.doFilter(request, response);
+//                                return;
+//                            }
+//                        }
+//
+//                        // If the user is neither an owner nor a collaborator, block access
+//                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied to this board.");
+//                        return;
+//
+//                    } catch (ExpiredJwtException e) {
+//                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired.");
+//                        return;
+//                    } catch (Exception e) {
+//                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired JWT token.");
+//                        return;
+//                    }
+//                } else {
+//                    // No token provided for private board
+//                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication is required.");
+//                    return;
+//                }
+//            } else {
+//                // Board not found
+//                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Board not found.");
+//                return;
+//            }
+//        }
+//
+//        // Proceed if the request does not match the /v3/boards pattern
+//        filterChain.doFilter(request, response);
+//    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String requestURI = request.getRequestURI();
@@ -162,6 +250,12 @@ public class VisibilityFilter extends OncePerRequestFilter {
                         Optional<AccessRight> accessRightOpt = collabService.getAccessRight(boardId, userIdFromToken);
                         if (accessRightOpt.isPresent()) {
                             AccessRight accessRight = accessRightOpt.get();
+
+                            // **Self-Removal Check**: Allow collaborators to delete themselves
+                            if (method.equals("DELETE") && requestURI.matches("/v3/boards/" + boardId + "/collabs/" + userIdFromToken)) {
+                                filterChain.doFilter(request, response);
+                                return;
+                            }
 
                             // WRITE collaborators can modify tasks and statuses but not the board itself
                             if (accessRight == AccessRight.WRITE) {

@@ -409,11 +409,21 @@ public class BoardController {
     }
 
 
-    @DeleteMapping("/{boardId}/collabs/{collab_oid}")
-    public ResponseEntity<?> removeCollaborator(@PathVariable String boardId, @PathVariable String collab_oid, @RequestHeader("Authorization") String token) {
+//    @DeleteMapping("/{boardId}/collabs/{collab_oid}")
+//    public ResponseEntity<?> removeCollaborator(@PathVariable String boardId, @PathVariable String collab_oid, @RequestHeader("Authorization") String token) {
+//        String userId = getUserIdFromToken(token);
+//        return collabService.removeCollaborator(boardId, collab_oid, userId);
+//    }
+
+    @DeleteMapping("/{boardId}/collabs/{collabId}")
+    public ResponseEntity<?> removeCollaborator(
+            @PathVariable String boardId,
+            @PathVariable String collabId,
+            @RequestHeader("Authorization") String token) {
         String userId = getUserIdFromToken(token);
-        return collabService.removeCollaborator(boardId, collab_oid, userId);
+        return collabService.removeCollaborator(boardId, collabId, userId);
     }
+
 
 
     private String getUserIdFromToken(String requestTokenHeader) {
