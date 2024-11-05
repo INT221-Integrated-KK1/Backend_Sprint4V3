@@ -7,12 +7,14 @@ import com.example.int221integratedkk1_backend.Entities.Taskboard.Collaborator;
 import com.example.int221integratedkk1_backend.Entities.Taskboard.BoardEntity;
 import com.example.int221integratedkk1_backend.Exception.CollaboratorAlreadyExistsException;
 import com.example.int221integratedkk1_backend.Exception.ItemNotFoundException;
+import com.example.int221integratedkk1_backend.Exception.UnauthorizedException;
 import com.example.int221integratedkk1_backend.Repositories.Account.UserRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.CollabRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.BoardRepository;
 import com.example.int221integratedkk1_backend.Entities.Account.UsersEntity;
 import com.example.int221integratedkk1_backend.Services.Account.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -106,6 +108,39 @@ public Optional<Collaborator> getCollaboratorByBoardIdAndCollaboratorId(String b
 
     public boolean isCollaborator(String boardId, String userId) {
         return collabRepository.existsByBoardIdAndCollabsId(boardId, userId);
+    }
+
+    public Collaborator updateCollaboratorAccess(String boardId, String collabId, String accessRight) {
+
+        Optional<Collaborator> collaboratorOpt = getCollaboratorByBoardIdAndCollaboratorId(boardId, collabId);
+        Collaborator collaborator = collaboratorOpt.orElseThrow(() -> new ItemNotFoundException("Collaborator not found"));
+
+
+        collaborator.setAccessLevel(AccessRight.valueOf(accessRight.toUpperCase()));
+        return collabRepository.save(collaborator);
+    }
+
+
+    public ResponseEntity<?> removeCollaborator(String boardId, String collabOid, String userId) {
+        BoardEntity board = getBoardById(boardId);
+
+        Collaborator collaborator = collabRepository.findByBoardIdAndCollabsId(boardId, collabOid).orElseThrow(() -> new ItemNotFoundException("Collaborator not found on this board."));
+
+        if (!board.getOwnerId().equals(userId) && !collabOid.equals(userId)) {
+            throw new UnauthorizedException("You do not have permission to remove this collaborator.");
+        }
+
+        collabRepository.delete(collaborator);
+        return null;
+    }
+
+    private BoardEntity getBoardById(String boardId) {
+        return boardRepository.findById(boardId).orElseThrow(() -> new ItemNotFoundException("Board not found with ID: " + boardId));
+    }
+
+    public Optional<AccessRight> getAccessRight(String boardId, String userId) {
+        Optional<Collaborator> collaboratorOpt = collabRepository.findByBoardIdAndCollabsId(boardId, userId);
+        return collaboratorOpt.map(Collaborator::getAccessLevel);
     }
 
 

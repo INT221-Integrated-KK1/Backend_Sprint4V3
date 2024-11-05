@@ -9,6 +9,7 @@ import com.example.int221integratedkk1_backend.Entities.Taskboard.BoardEntity;
 import com.example.int221integratedkk1_backend.Entities.Taskboard.StatusEntity;
 import com.example.int221integratedkk1_backend.Entities.Taskboard.TaskEntity;
 import com.example.int221integratedkk1_backend.Exception.EmptyRequestBodyException;
+import com.example.int221integratedkk1_backend.Exception.ItemNotFoundException;
 import com.example.int221integratedkk1_backend.Exception.UnauthorizedException;
 import com.example.int221integratedkk1_backend.Services.Taskboard.CollabService;
 import com.example.int221integratedkk1_backend.Services.Account.JwtTokenUtil;
@@ -161,7 +162,7 @@ public class BoardController {
                                         @Valid @RequestBody(required = false) TaskRequest taskRequest,
                                         @RequestHeader(value = "Authorization", required = false) String requestTokenHeader) throws Throwable {
         if (taskRequest == null || taskRequest.getTitle() == null || taskRequest.getTitle().trim().isEmpty() || taskRequest.getStatus() == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid task request body.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid task request body.");
         }
 
         String userId = getUserIdFromToken(requestTokenHeader);
@@ -189,7 +190,7 @@ public class BoardController {
                                         @Valid @RequestBody(required = false) TaskRequest taskRequest,
                                         @RequestHeader(value = "Authorization", required = false) String requestTokenHeader) throws Throwable {
         if (taskRequest == null || taskRequest.getTitle() == null || taskRequest.getTitle().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid task update request body.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid task update request body.");
         }
 
         String userId = getUserIdFromToken(requestTokenHeader);
@@ -236,7 +237,7 @@ public class BoardController {
                                           @RequestHeader(value = "Authorization", required = false) String requestTokenHeader,
                                           @Valid @RequestBody(required = false) StatusEntity statusEntity) {
         if (statusEntity == null || statusEntity.getName() == null || statusEntity.getName().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid status request body.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid status request body.");
         }
 
         String userId = getUserIdFromToken(requestTokenHeader);
@@ -264,7 +265,7 @@ public class BoardController {
                                           @RequestHeader(value = "Authorization", required = false) String requestTokenHeader,
                                           @Valid @RequestBody(required = false) StatusEntity updatedStatus) {
         if (updatedStatus == null || updatedStatus.getName() == null || updatedStatus.getName().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid status update request body.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid status update request body.");
         }
 
         String userId = getUserIdFromToken(requestTokenHeader);
@@ -380,13 +381,49 @@ public class BoardController {
         return ResponseEntity.status(HttpStatus.CREATED).body(collaborator);
     }
 
+
+    @PatchMapping("/{boardId}/collabs/{collabId}")
+    public ResponseEntity<?> updateCollaboratorAccess(
+            @PathVariable String boardId,
+            @PathVariable String collabId,
+            @RequestBody(required = false) Map<String, String> body,
+            @RequestHeader(value = "Authorization", required = false) String requestTokenHeader) {
+
+        String userId = getUserIdFromToken(requestTokenHeader);
+
+
+        BoardEntity board = boardService.getBoardById(boardId);
+        if (!board.getOwnerId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only the board owner can update collaborator access rights.");
+        }
+
+
+        String accessRight = body != null ? body.get("accessRight") : null;
+        if (accessRight == null || !(accessRight.equalsIgnoreCase("READ") || accessRight.equalsIgnoreCase("WRITE"))) {
+            return ResponseEntity.badRequest().body("Invalid access right. Must be 'READ' or 'WRITE'.");
+        }
+
+
+        Collaborator collaborator = collabService.updateCollaboratorAccess(boardId, collabId, accessRight);
+        return ResponseEntity.ok(collaborator);
+    }
+
+
+    @DeleteMapping("/{boardId}/collabs/{collab_oid}")
+    public ResponseEntity<?> removeCollaborator(@PathVariable String boardId, @PathVariable String collab_oid, @RequestHeader("Authorization") String token) {
+        String userId = getUserIdFromToken(token);
+        return collabService.removeCollaborator(boardId, collab_oid, userId);
+    }
+
+
     private String getUserIdFromToken(String requestTokenHeader) {
         String token = requestTokenHeader.substring(7);
         return jwtTokenUtil.getUserIdFromToken(token);
     }
 
-    private boolean isOwnerOrWriteCollaborator(BoardEntity board, String userId) {
 
+
+    private boolean isOwnerOrWriteCollaborator(BoardEntity board, String userId) {
         if (board.getOwnerId().equals(userId)) {
             return true;
         }

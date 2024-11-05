@@ -89,7 +89,7 @@ public class StatusService {
     @Transactional
     public void deleteStatus(int id, String boardId, String ownerId) throws ItemNotFoundException, UnManageStatusException, UnauthorizedException {
         boardRepository.findByIdAndOwnerId(boardId, ownerId)
-                .orElseThrow(() -> new UnauthorizedException("Board not found or user does not an owner"));
+                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
 
         StatusEntity status = statusRepository.findById(id)
                 .orElseThrow(() -> new ItemNotFoundException("Status " + id + " not found"));
