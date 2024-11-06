@@ -114,31 +114,36 @@ public class CollabService {
 
     public ResponseEntity<?> removeCollaborator(String boardId, String collabId, String userId) {
 
+        // Get the board by ID
         BoardEntity board = getBoardById(boardId);
 
+        // ตรวจสอบสิทธิ์ก่อนที่จะค้นหาคอลแลบอเรเตอร์
+        if (!board.getOwnerId().equals(userId) && !collabId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
+        }
 
+        // Find the collaborator to remove from the repository
         Collaborator collaborator = collabRepository.findByBoardIdAndCollabsId(boardId, collabId)
                 .orElseThrow(() -> {
                     return new ItemNotFoundException("Collaborator not found on this board.");
                 });
 
-
+        // ถ้าผู้ใช้เป็นเจ้าของบอร์ด ให้ลบคอลแลบอเรเตอร์
         if (board.getOwnerId().equals(userId)) {
-
             collabRepository.delete(collaborator);
             return ResponseEntity.ok("Collaborator removed successfully.");
         }
 
-
+        // ถ้าผู้ใช้เป็นคอลแลบอเรเตอร์ที่ออกจากบอร์ดตัวเอง
         if (collabId.equals(userId)) {
-
             collabRepository.delete(collaborator);
             return ResponseEntity.ok("You have left the board.");
         }
 
-
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
     }
+
+
 
 
     private BoardEntity getBoardById(String boardId) {
