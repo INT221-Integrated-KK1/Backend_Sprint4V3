@@ -17,6 +17,59 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+//@Component
+//public class JwtAuthFilter extends OncePerRequestFilter {
+//
+//    @Autowired
+//    private JwtUserDetailsService jwtUserDetailsService;
+//
+//    @Autowired
+//    private JwtTokenUtil jwtTokenUtil;
+//
+//    @Override
+//    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException {
+//
+//        final String requestTokenHeader = request.getHeader("Authorization");
+//        String username = null;
+//        String jwtToken = null;
+//
+//        try {
+//            if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
+//                jwtToken = requestTokenHeader.substring(7);
+//                username = jwtTokenUtil.getUsernameFromToken(jwtToken);
+//            }
+//
+//            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+//                UserDetails userDetails = jwtUserDetailsService.loadUserByUsername(username);
+//
+//                if (jwtTokenUtil.validateToken(jwtToken, userDetails)) {
+//                    UsernamePasswordAuthenticationToken authenticationToken =
+//                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+//                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+//
+//                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+//                } else {
+//                    throw new UnauthorizedException("Invalid token or user not authorized.");
+//                }
+//
+//            }
+//
+//            filterChain.doFilter(request, response);
+//
+//        } catch (UnauthorizedException e) {
+//            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+//        } catch (Exception e) {
+//            sendErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
+//        }
+//
+//    }
+//
+//    private void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
+//        response.setStatus(status);
+//        response.setContentType("application/json");
+//        response.getWriter().write("{\"error\": \"" + message + "\"}");
+//    }
+//}
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
@@ -27,7 +80,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private JwtTokenUtil jwtTokenUtil;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+        final String requestURI = request.getRequestURI();
+        final String method = request.getMethod();
+
+        // Allow unauthenticated access for public GET requests on boards
+        if (method.equals("GET") && isPublicBoardRequest(requestURI)) {
+            filterChain.doFilter(request, response); // Skip authentication for public board GET requests
+            return;
+        }
 
         final String requestTokenHeader = request.getHeader("Authorization");
         String username = null;
@@ -51,7 +112,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 } else {
                     throw new UnauthorizedException("Invalid token or user not authorized.");
                 }
-
             }
 
             filterChain.doFilter(request, response);
@@ -61,7 +121,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             sendErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
         }
+    }
 
+    private boolean isPublicBoardRequest(String requestURI) {
+        // Define a pattern that matches the GET requests for public boards
+        return requestURI.matches("/v3/boards/([^/]+)(/.*)?");
     }
 
     private void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
