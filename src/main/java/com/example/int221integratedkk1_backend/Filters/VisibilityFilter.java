@@ -171,6 +171,10 @@ public class VisibilityFilter extends OncePerRequestFilter {
                             filterChain.doFilter(request, response);
                             return;
                         }
+                        if (method.equals("DELETE") && requestURI.matches("/v3/boards/" + boardId + "/collabs/" + userIdFromToken)) {
+                            filterChain.doFilter(request, response);
+                            return;
+                        }
 
                         // Check if user is a collaborator and get their access rights
                         Optional<AccessRight> accessRightOpt = collabService.getAccessRight(boardId, userIdFromToken);

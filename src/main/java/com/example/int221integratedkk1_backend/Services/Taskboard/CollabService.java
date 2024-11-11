@@ -7,8 +7,6 @@ import com.example.int221integratedkk1_backend.Entities.Taskboard.Collaborator;
 import com.example.int221integratedkk1_backend.Entities.Taskboard.BoardEntity;
 import com.example.int221integratedkk1_backend.Exception.CollaboratorAlreadyExistsException;
 import com.example.int221integratedkk1_backend.Exception.ItemNotFoundException;
-import com.example.int221integratedkk1_backend.Exception.UnauthorizedException;
-import com.example.int221integratedkk1_backend.Repositories.Account.UserRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.CollabRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.BoardRepository;
 import com.example.int221integratedkk1_backend.Entities.Account.UsersEntity;
@@ -114,27 +112,35 @@ public class CollabService {
 
     public ResponseEntity<?> removeCollaborator(String boardId, String collabId, String userId) {
 
-        // Get the board by ID
-        BoardEntity board = getBoardById(boardId);
+        Optional<BoardEntity> boardOpt = boardRepository.findById(boardId);
+        if (boardOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Board not found.");
+        }
+        BoardEntity board = boardOpt.get();
 
-        // ตรวจสอบสิทธิ์ก่อนที่จะค้นหาคอลแลบอเรเตอร์
+        Optional<Collaborator> collaboratorOpt = collabRepository.findByBoardIdAndCollabsId(boardId, collabId);
+        if (collaboratorOpt.isEmpty()) {
+            if (board.getOwnerId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Collaborator not found.");
+            }
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
+        }
+
+        Collaborator collaborator = collaboratorOpt.get();
+
         if (!board.getOwnerId().equals(userId) && !collabId.equals(userId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
         }
 
-        // Find the collaborator to remove from the repository
-        Collaborator collaborator = collabRepository.findByBoardIdAndCollabsId(boardId, collabId)
-                .orElseThrow(() -> {
-                    return new ItemNotFoundException("Collaborator not found on this board.");
-                });
+        if (!board.getOwnerId().equals(userId) && !collabId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
+        }
 
-        // ถ้าผู้ใช้เป็นเจ้าของบอร์ด ให้ลบคอลแลบอเรเตอร์
         if (board.getOwnerId().equals(userId)) {
             collabRepository.delete(collaborator);
             return ResponseEntity.ok("Collaborator removed successfully.");
         }
 
-        // ถ้าผู้ใช้เป็นคอลแลบอเรเตอร์ที่ออกจากบอร์ดตัวเอง
         if (collabId.equals(userId)) {
             collabRepository.delete(collaborator);
             return ResponseEntity.ok("You have left the board.");
@@ -142,8 +148,6 @@ public class CollabService {
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
     }
-
-
 
 
     private BoardEntity getBoardById(String boardId) {
