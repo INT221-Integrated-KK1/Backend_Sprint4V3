@@ -212,8 +212,10 @@ public class BoardController {
 
     @PostMapping("/{boardId}/statuses")
     public ResponseEntity<?> createStatus(@PathVariable String boardId, @RequestHeader(value = "Authorization", required = false) String requestTokenHeader, @Valid @RequestBody(required = false) StatusEntity statusEntity) {
-        if (statusEntity == null || statusEntity.getName() == null || statusEntity.getName().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid status request body.");
+        // add check null on description
+        if (statusEntity == null || statusEntity.getName() == null || statusEntity.getName().trim().isEmpty() ||
+                statusEntity.getDescription() == null || statusEntity.getDescription().trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid status request body: Name and description are required.");
         }
 
         String userId = getUserIdFromToken(requestTokenHeader);
@@ -261,6 +263,16 @@ public class BoardController {
 
         statusService.deleteStatus(statusId, boardId, userId);
         return ResponseEntity.ok("Status deleted successfully");
+    }
+
+    @DeleteMapping("/{boardId}/statuses/{statusId}/{newId}")
+    public ResponseEntity<String> deleteStatusAndReplace(@PathVariable String boardId,
+                                                         @PathVariable Integer statusId,
+                                                         @PathVariable Integer newId,
+                                                         @RequestHeader(value = "Authorization",required = false) String requestTokenHeader) {
+        String userName = getUserIdFromToken(requestTokenHeader);
+        statusService.transferTasksAndDeleteStatus(statusId, newId, boardId, userName);
+        return ResponseEntity.ok("Status replaced and deleted successfully");
     }
 
     // Collaborator Management

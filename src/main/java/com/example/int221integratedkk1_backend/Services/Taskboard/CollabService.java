@@ -53,26 +53,29 @@ public class CollabService {
     public Collaborator addCollaborator(String boardId, CollabRequest collabRequest)
             throws CollaboratorAlreadyExistsException, ItemNotFoundException {
 
+        // Get the BoardEntity by ID
         BoardEntity board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ItemNotFoundException("Board not found with ID: " + boardId));
 
+        // Find the user based on email
         UsersEntity user = userService.findUserByEmail(collabRequest.getEmail());
         if (user == null) {
             throw new ItemNotFoundException("User not found with email: " + collabRequest.getEmail());
         }
 
+        // Check if the user is already a collaborator for the board
         if (collabRepository.existsByBoardIdAndCollabsId(boardId, user.getOid())) {
             throw new CollaboratorAlreadyExistsException("Collaborator already exists for this board.");
         }
 
-
+        // Check if the user is the board owner
         if (board.getOwnerId().equals(user.getOid())) {
             throw new CollaboratorAlreadyExistsException("Board owner cannot be added as a collaborator.");
         }
 
-
+        // Create new Collaborator and set attributes
         Collaborator collaborator = new Collaborator();
-        collaborator.setBoardId(boardId);
+        collaborator.setBoard(board); // Set BoardEntity instead of boardId
         collaborator.setCollabsId(user.getOid());
         collaborator.setCollabsName(user.getName());
         collaborator.setCollabsEmail(user.getEmail());
@@ -81,16 +84,19 @@ public class CollabService {
 
         collaborator.setOwnerId(board.getOwnerId());
 
+        // Save the collaborator
         collabRepository.save(collaborator);
 
         return collaborator;
     }
 
+
     public List<BoardEntity> getBoardsWhereUserIsCollaborator(String userId) {
         List<Collaborator> collaborators = collabRepository.findByCollabsId(userId);
-        List<String> boardIds = collaborators.stream().map(Collaborator::getBoardId).collect(Collectors.toList());
+        List<String> boardIds = collaborators.stream().map(c -> c.getBoard().getId()).collect(Collectors.toList()); // Changed to getBoard().getId()
         return boardRepository.findAllById(boardIds);
     }
+
 
     public Optional<Collaborator> getCollaboratorByBoardIdAndCollaboratorId(String boardId, String userId) {
         return collabRepository.findByBoardIdAndCollabsId(boardId, userId);

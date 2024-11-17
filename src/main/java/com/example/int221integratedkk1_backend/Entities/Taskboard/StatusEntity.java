@@ -23,7 +23,7 @@ public class StatusEntity {
     private String name;
 
     @Size(max = 200, message = "Description size must be between 0 and 200")
-    @Column(name = "statusDescription", length = 200)
+    @Column(name = "statusDescription", length = 200 , nullable = false)
     private String description;
 
     @JsonIgnore

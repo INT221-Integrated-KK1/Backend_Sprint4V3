@@ -47,8 +47,14 @@ public class StatusService {
     }
 
 
+
     @Transactional
     public StatusEntity createStatus(String boardId, String ownerId, @Valid StatusEntity statusEntity) {
+
+        // ตรวจสอบว่า status description ไม่เป็น null หรือ empty
+        if (statusEntity.getDescription() == null || statusEntity.getDescription().isEmpty()) {
+            throw new IllegalArgumentException("Status description cannot be null or empty");
+        }
 
         BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
                 .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
@@ -60,6 +66,8 @@ public class StatusService {
         statusEntity.setBoard(board);
         return statusRepository.save(statusEntity);
     }
+
+
 
     @Transactional
     public StatusEntity updateStatus(int id, String boardId, String ownerId, @Valid StatusEntity updatedStatus) throws ItemNotFoundException, DuplicateStatusException, UnManageStatusException {
