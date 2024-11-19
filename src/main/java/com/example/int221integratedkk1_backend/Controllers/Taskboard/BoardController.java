@@ -212,11 +212,11 @@ public class BoardController {
 
     @PostMapping("/{boardId}/statuses")
     public ResponseEntity<?> createStatus(@PathVariable String boardId, @RequestHeader(value = "Authorization", required = false) String requestTokenHeader, @Valid @RequestBody(required = false) StatusEntity statusEntity) {
-        // add check null on description
-        if (statusEntity == null || statusEntity.getName() == null || statusEntity.getName().trim().isEmpty() ||
-                statusEntity.getDescription() == null || statusEntity.getDescription().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid status request body: Name and description are required.");
+
+        if (statusEntity == null || statusEntity.getName() == null || statusEntity.getName().trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid status request body: Name is required.");
         }
+
 
         String userId = getUserIdFromToken(requestTokenHeader);
         BoardEntity board = boardService.getBoardById(boardId);
@@ -236,7 +236,12 @@ public class BoardController {
     }
 
     @PutMapping("/{boardId}/statuses/{statusId}")
-    public ResponseEntity<?> updateStatus(@PathVariable String boardId, @PathVariable Integer statusId, @RequestHeader(value = "Authorization", required = false) String requestTokenHeader, @Valid @RequestBody(required = false) StatusEntity updatedStatus) {
+    public ResponseEntity<?> updateStatus(
+            @PathVariable String boardId,
+            @PathVariable Integer statusId,
+            @RequestHeader(value = "Authorization", required = false) String requestTokenHeader,
+            @Valid @RequestBody(required = false) StatusEntity updatedStatus) {
+
         if (updatedStatus == null || updatedStatus.getName() == null || updatedStatus.getName().trim().isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid status update request body.");
         }
@@ -248,9 +253,15 @@ public class BoardController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to update statuses on this board.");
         }
 
+        // Handle description to allow null or empty string
+        if (updatedStatus.getDescription() != null && updatedStatus.getDescription().trim().isEmpty()) {
+            updatedStatus.setDescription(null);
+        }
+
         StatusEntity updatedEntity = statusService.updateStatus(statusId, boardId, userId, updatedStatus);
         return ResponseEntity.ok(updatedEntity);
     }
+
 
     @DeleteMapping("/{boardId}/statuses/{statusId}")
     public ResponseEntity<String> deleteStatus(@PathVariable String boardId, @PathVariable Integer statusId, @RequestHeader(value = "Authorization", required = false) String requestTokenHeader) {
