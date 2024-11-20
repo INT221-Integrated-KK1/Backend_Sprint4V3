@@ -156,6 +156,7 @@ public class CollabService {
     }
 
 
+
     private BoardEntity getBoardById(String boardId) {
         return boardRepository.findById(boardId).orElseThrow(() -> new ItemNotFoundException("Board not found with ID: " + boardId));
     }
@@ -164,6 +165,4 @@ public class CollabService {
         Optional<Collaborator> collaboratorOpt = collabRepository.findByBoardIdAndCollabsId(boardId, userId);
         return collaboratorOpt.map(Collaborator::getAccessLevel);
     }
-
-
 }

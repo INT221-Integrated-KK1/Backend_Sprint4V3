@@ -78,7 +78,7 @@ public class VisibilityFilter extends OncePerRequestFilter {
                             // Allow collaborators with WRITE access to perform task/status operations
                             if (accessRight == AccessRight.WRITE) {
                                 if (isTaskOrStatusOperation(requestURI, method)) {
-                                    filterChain.doFilter(request, response);
+                                    filterChain.doFilter(request, response); // Allow write operations for task or status
                                     return;
                                 }
 
@@ -145,4 +145,3 @@ public class VisibilityFilter extends OncePerRequestFilter {
                 || (requestURI.matches("/v3/boards/[^/]+/status") && (method.equals("POST") || method.equals("PUT"))); // Add/update status
     }
 }
-

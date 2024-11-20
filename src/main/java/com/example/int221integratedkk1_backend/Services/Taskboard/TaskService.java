@@ -70,7 +70,10 @@ public class TaskService {
 
     @Transactional
     public TaskEntity createTask(String boardId, TaskRequest taskRequest, String ownerId) {
-        BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//        BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
+
+        BoardEntity board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
 
         StatusEntity status = statusRepository.findByIdAndBoard_Id(taskRequest.getStatus(), boardId)

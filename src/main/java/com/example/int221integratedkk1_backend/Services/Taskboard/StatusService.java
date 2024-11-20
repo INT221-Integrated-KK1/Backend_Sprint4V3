@@ -50,7 +50,10 @@ public class StatusService {
     @Transactional
     public StatusEntity createStatus(String boardId, String ownerId, @Valid StatusEntity statusEntity) {
 
-        BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//        BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
+
+        BoardEntity board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
 
         if (statusRepository.findByNameAndBoard_Id(statusEntity.getName(), boardId).isPresent()) {
