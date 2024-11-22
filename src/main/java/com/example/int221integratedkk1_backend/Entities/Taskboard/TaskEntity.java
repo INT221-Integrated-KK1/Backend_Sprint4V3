@@ -15,7 +15,8 @@ public class TaskEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
     @Column(name = "taskId")
-    private int id;
+    private Integer id;
+
     @Basic
     @Column(name = "taskTitle", nullable = false, length = 100)
     private String title;

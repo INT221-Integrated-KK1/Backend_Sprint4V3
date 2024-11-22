@@ -39,12 +39,24 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
+//        httpSecurity.csrf(csrf -> csrf.disable())
+//                .authorizeHttpRequests(authorize -> authorize
+//                        .requestMatchers("/error","/login").permitAll()
+//                        .requestMatchers(HttpMethod.GET).hasAuthority("PUBLIC")
+//                        .requestMatchers("/v3/boards/**").authenticated()
+//                        .anyRequest().authenticated())
+//                .exceptionHandling(exceptionHandling -> exceptionHandling
+//                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+//                        .accessDeniedHandler(customAccessDeniedHandler))
+//                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)   // Add JWT filter
+//                .addFilterAfter(visibilityFilter, JwtAuthFilter.class); // Add visibility filter
+//
+//
+//        return httpSecurity.build();
         httpSecurity.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/error","/login").permitAll()
-                        .requestMatchers(HttpMethod.GET).hasAuthority("PUBLIC")
-                        .requestMatchers("/v3/boards/**").authenticated()
-                        .anyRequest().authenticated())
+                        .anyRequest().permitAll())
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint(customAuthenticationEntryPoint)
                         .accessDeniedHandler(customAccessDeniedHandler))

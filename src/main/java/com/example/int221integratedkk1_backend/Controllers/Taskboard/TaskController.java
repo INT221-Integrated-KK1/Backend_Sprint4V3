@@ -2,6 +2,7 @@ package com.example.int221integratedkk1_backend.Controllers.Taskboard;
 
 import com.example.int221integratedkk1_backend.DTOS.TaskDTO;
 import com.example.int221integratedkk1_backend.DTOS.TaskRequest;
+import com.example.int221integratedkk1_backend.Entities.Taskboard.AttachmentEntity;
 import com.example.int221integratedkk1_backend.Entities.Taskboard.TaskEntity;
 import com.example.int221integratedkk1_backend.Services.Account.JwtTokenUtil;
 import com.example.int221integratedkk1_backend.Services.Taskboard.TaskService;
@@ -9,12 +10,14 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
 @RequestMapping("/v3/boards/{boardId}/tasks")
-@CrossOrigin(origins = {"http://localhost:5173", "http://ip23kk1.sit.kmutt.ac.th", "http://intproj23.sit.kmutt.ac.th", "http://intproj23.sit.kmutt.ac.th:8080", "http://ip23kk1.sit.kmutt.ac.th:8080"})
+//@CrossOrigin(origins = {"http://localhost:5173", "http://ip23kk1.sit.kmutt.ac.th", "http://intproj23.sit.kmutt.ac.th", "http://intproj23.sit.kmutt.ac.th:8080", "http://ip23kk1.sit.kmutt.ac.th:8080"})
 public class TaskController {
 
 //    @Autowired
@@ -22,7 +25,6 @@ public class TaskController {
 //
 //    @Autowired
 //    private JwtTokenUtil jwtTokenUtil;
-//
 //    @GetMapping("")
 //    public ResponseEntity<List<TaskDTO>> getAllTasks(@PathVariable String boardId,
 //                                                     @RequestParam(required = false) List<String> filterStatuses,
