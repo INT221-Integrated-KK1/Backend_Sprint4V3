@@ -194,6 +194,51 @@ public class InvitationService {
         mailSender.send(message);
     }
 
+    @Transactional
+    public InviteCollaboratorResponse cancelInvitation(Long invitationId, String userId) {
+        InviteCollaboratorResponse inviteCollaboratorResponse = new InviteCollaboratorResponse();
+
+        // Validate invitationId
+        if (Objects.isNull(invitationId)) {
+            inviteCollaboratorResponse.setMessage("InvitationId cannot be null");
+            inviteCollaboratorResponse.setStatus(400);
+            return inviteCollaboratorResponse;
+        }
+
+        // Retrieve the invitation
+        Optional<InvitationEntity> invitationOpt = invitationRepository.findById(invitationId);
+        if (invitationOpt.isEmpty()) {
+            inviteCollaboratorResponse.setMessage("Invitation not found");
+            inviteCollaboratorResponse.setStatus(404);
+            return inviteCollaboratorResponse;
+        }
+
+        InvitationEntity invitation = invitationOpt.get();
+
+        // Check if the user is the board owner
+        if (!invitation.getBoard().getOwnerId().equals(userId)) {
+            inviteCollaboratorResponse.setMessage("You do not have permission to cancel this invitation.");
+            inviteCollaboratorResponse.setStatus(403);
+            return inviteCollaboratorResponse;
+        }
+
+        // Check if the invitation is still pending
+        if (invitation.getStatus() != InvitationStatus.PENDING) {
+            inviteCollaboratorResponse.setMessage("Only pending invitations can be canceled.");
+            inviteCollaboratorResponse.setStatus(400);
+            return inviteCollaboratorResponse;
+        }
+
+        // Delete the invitation
+        invitationRepository.delete(invitation);
+
+        inviteCollaboratorResponse.setMessage("Invitation canceled successfully.");
+        inviteCollaboratorResponse.setStatus(200);
+        return inviteCollaboratorResponse;
+    }
+
+
+
     // FE แก้ ลิงค์เชิญผ่านเมล
 
     private String generateInvitationLink(Long invitationId) {
