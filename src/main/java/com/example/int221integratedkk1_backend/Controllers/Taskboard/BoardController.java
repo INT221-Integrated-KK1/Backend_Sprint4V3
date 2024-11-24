@@ -213,7 +213,7 @@ public class BoardController {
     @PostMapping("/{boardId}/statuses")
     public ResponseEntity<?> createStatus(@PathVariable String boardId, @RequestHeader(value = "Authorization", required = false) String requestTokenHeader, @Valid @RequestBody(required = false) StatusEntity statusEntity) {
         if (statusEntity == null || statusEntity.getName() == null || statusEntity.getName().trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid status request body.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid status request body: Name is required.");
         }
 
         String userId = getUserIdFromToken(requestTokenHeader);
@@ -234,7 +234,12 @@ public class BoardController {
     }
 
     @PutMapping("/{boardId}/statuses/{statusId}")
-    public ResponseEntity<?> updateStatus(@PathVariable String boardId, @PathVariable Integer statusId, @RequestHeader(value = "Authorization", required = false) String requestTokenHeader, @Valid @RequestBody(required = false) StatusEntity updatedStatus) {
+    public ResponseEntity<?> updateStatus(
+            @PathVariable String boardId,
+            @PathVariable Integer statusId,
+            @RequestHeader(value = "Authorization", required = false) String requestTokenHeader,
+            @Valid @RequestBody(required = false) StatusEntity updatedStatus) {
+
         if (updatedStatus == null || updatedStatus.getName() == null || updatedStatus.getName().trim().isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid status update request body.");
         }
@@ -246,9 +251,15 @@ public class BoardController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to update statuses on this board.");
         }
 
+        // Handle description to allow null or empty string
+        if (updatedStatus.getDescription() != null && updatedStatus.getDescription().trim().isEmpty()) {
+            updatedStatus.setDescription(null);
+        }
+
         StatusEntity updatedEntity = statusService.updateStatus(statusId, boardId, userId, updatedStatus);
         return ResponseEntity.ok(updatedEntity);
     }
+
 
     @DeleteMapping("/{boardId}/statuses/{statusId}")
     public ResponseEntity<String> deleteStatus(@PathVariable String boardId, @PathVariable Integer statusId, @RequestHeader(value = "Authorization", required = false) String requestTokenHeader) {
@@ -261,6 +272,16 @@ public class BoardController {
 
         statusService.deleteStatus(statusId, boardId, userId);
         return ResponseEntity.ok("Status deleted successfully");
+    }
+
+    @DeleteMapping("/{boardId}/statuses/{statusId}/{newId}")
+    public ResponseEntity<String> deleteStatusAndReplace(@PathVariable String boardId,
+                                                         @PathVariable Integer statusId,
+                                                         @PathVariable Integer newId,
+                                                         @RequestHeader(value = "Authorization",required = false) String requestTokenHeader) {
+        String userName = getUserIdFromToken(requestTokenHeader);
+        statusService.transferTasksAndDeleteStatus(statusId, newId, boardId, userName);
+        return ResponseEntity.ok("Status replaced and deleted successfully");
     }
 
     // Collaborator Management
