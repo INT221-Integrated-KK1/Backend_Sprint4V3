@@ -15,13 +15,4 @@ public class CollabDTO {
     private AccessRight accessRight;
     private Timestamp addedOn;
 
-    public void CollaboratorDTO() {}
-
-    public void CollaboratorDTO(String oid, String name, String email, AccessRight accessRight, Timestamp addedOn) {
-        this.oid = oid;
-        this.name = name;
-        this.email = email;
-        this.accessRight = accessRight;
-        this.addedOn = addedOn;
-    }
 }

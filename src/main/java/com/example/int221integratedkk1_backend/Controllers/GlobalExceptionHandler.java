@@ -1,6 +1,7 @@
 package com.example.int221integratedkk1_backend.Controllers;
 
 import com.example.int221integratedkk1_backend.Exception.*;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -23,8 +24,14 @@ public class GlobalExceptionHandler {
 
 
     @ExceptionHandler(ValidateInputException.class)
-    public ResponseEntity<String> handleValidateInputException(ValidateInputException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    public ResponseEntity<ErrorResponse> handleValidateInputException(ValidateInputException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(EmptyRequestBodyException.class)
