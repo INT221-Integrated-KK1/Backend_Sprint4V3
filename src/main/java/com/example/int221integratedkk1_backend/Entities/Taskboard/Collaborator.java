@@ -13,7 +13,11 @@ import java.sql.Timestamp;
 public class Collaborator {
 
     @Id
-    @Column(name = "collabsId", length = 36)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // AUTO_INCREMENT
+    @Column(name = "Id")
+    private int id;
+
+    @Column(name = "collabsId", length = 36, nullable = false)
     private String collabsId;
 
     @Column(name = "collabsName", length = 100, nullable = false)
@@ -25,7 +29,7 @@ public class Collaborator {
     // Many Collaborators belong to one Board
     @ManyToOne
     @JoinColumn(name = "boardId", referencedColumnName = "boardId", nullable = false)
-    private BoardEntity board; // Changed to 'board' (BoardEntity)
+    private BoardEntity board;
 
     @Column(name = "ownerId", length = 36, nullable = false)
     private String ownerId;
@@ -38,3 +42,4 @@ public class Collaborator {
     @Column(name = "addedOn", nullable = false)
     private Timestamp addedOn;
 }
+
