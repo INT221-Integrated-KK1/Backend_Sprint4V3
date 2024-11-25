@@ -56,7 +56,7 @@ public class AttachmentController {
     public ResponseEntity<Resource> getFile(@PathVariable int taskId, @PathVariable String filename) throws IOException {
         // Define the directory for attachments
         // FE แก้เป็น filepath ตัวเอง
-        final String UPLOAD_DIR = "/Users/HUAWEI/Documents/integrate2/src/main/resources/attachments";
+        final String UPLOAD_DIR = "/Users/HUAWEI/Documents/integrate2/Backend_Sprint4V3/src/main/resources/attachments";
 
         // Construct the full file path
         String filePath = UPLOAD_DIR + File.separator + taskId + File.separator + filename;
