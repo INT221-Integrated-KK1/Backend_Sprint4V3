@@ -1,10 +1,12 @@
 package com.example.int221integratedkk1_backend.DTOS;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+]
 import java.util.List;
 
 @Getter
@@ -16,3 +18,4 @@ public class InviteCollaboratorResponse {
     private int status;
     private List<?> data ;
 }
+

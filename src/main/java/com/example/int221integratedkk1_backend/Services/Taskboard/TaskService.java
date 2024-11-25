@@ -2,11 +2,13 @@ package com.example.int221integratedkk1_backend.Services.Taskboard;
 
 import com.example.int221integratedkk1_backend.DTOS.TaskDTO;
 import com.example.int221integratedkk1_backend.DTOS.TaskRequest;
+import com.example.int221integratedkk1_backend.Entities.Taskboard.AttachmentEntity;
 import com.example.int221integratedkk1_backend.Entities.Taskboard.BoardEntity;
 import com.example.int221integratedkk1_backend.Entities.Taskboard.StatusEntity;
 import com.example.int221integratedkk1_backend.Entities.Taskboard.TaskEntity;
 import com.example.int221integratedkk1_backend.Exception.ItemNotFoundException;
 import com.example.int221integratedkk1_backend.Exception.UnauthorizedException;
+import com.example.int221integratedkk1_backend.Repositories.Taskboard.AttachmentRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.BoardRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.StatusRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.TaskRepository;
@@ -16,7 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +34,9 @@ public class TaskService {
     private TaskRepository repository;
 
     @Autowired
+    private AttachmentRepository attachmentRepository;
+
+    @Autowired
     private StatusRepository statusRepository;
 
     @Autowired
@@ -35,6 +44,7 @@ public class TaskService {
 
     @Autowired
     private ListMapper listMapper;
+
 
     public List<TaskDTO> getAllTasks(String boardId, List<String> filterStatuses, String sortBy, String sortDirection, String ownerId) {
         Sort.Direction direction = Sort.Direction.ASC;

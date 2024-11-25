@@ -1,6 +1,8 @@
 package com.example.int221integratedkk1_backend.Services.Taskboard;
+
 import com.example.int221integratedkk1_backend.Entities.Account.UsersEntity;
 import com.example.int221integratedkk1_backend.Repositories.Account.UserRepository;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.example.int221integratedkk1_backend.DTOS.InviteCollaboratorResponse;
@@ -69,7 +71,7 @@ public class InvitationService {
             sendInvitationEmail(collaboratorEmail,board, invitation);
             inviteCollaboratorResponse.setMessage("Invitation sent to " +  collaboratorEmail);
             inviteCollaboratorResponse.setStatus(200);
-            // inviteCollaboratorResponse.setName(collaboratorName);
+
             return inviteCollaboratorResponse;
         }else{
             inviteCollaboratorResponse.setMessage("Required Board Id or CollaboratorEmail");
@@ -176,6 +178,7 @@ public class InvitationService {
         return inviteCollaboratorResponse;
     }
 
+
 //    public InviteCollaboratorResponse getPendingInvitations(String boardId) {
 //        InviteCollaboratorResponse inviteCollaboratorResponse = new InviteCollaboratorResponse();
 //        if(Objects.nonNull(boardId)){
@@ -196,10 +199,12 @@ public class InvitationService {
         InviteCollaboratorResponse inviteCollaboratorResponse = new InviteCollaboratorResponse();
 
         if (Objects.isNull(boardId) || boardId.trim().isEmpty()) {
+
             inviteCollaboratorResponse.setMessage("Board Id can't be null");
             inviteCollaboratorResponse.setStatus(400);
             return inviteCollaboratorResponse;
         }
+
 
         List<InvitationEntity> invitationEntityList = invitationRepository.findByBoard_IdAndStatus(boardId, InvitationStatus.PENDING);
 
@@ -221,6 +226,7 @@ public class InvitationService {
 
     private void sendInvitationEmail(String collaboratorEmail, BoardEntity board  , InvitationEntity invitation) {
         String invitationLink = generateInvitationLink(invitation.getId(), board.getId());
+
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(collaboratorEmail);
         message.setSubject("Invitation to collaborate on board " + board.getBoardName());
