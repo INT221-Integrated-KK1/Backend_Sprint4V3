@@ -13,6 +13,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
+@CrossOrigin(origins = {"http://localhost:5173", "http://ip23kk1.sit.kmutt.ac.th", "http://intproj23.sit.kmutt.ac.th", "http://intproj23.sit.kmutt.ac.th:8080", "http://ip23kk1.sit.kmutt.ac.th:8080"})
+
 public class InvitationController {
 
     @Autowired
@@ -62,4 +64,5 @@ public class InvitationController {
 
         return ResponseEntity.status(response.getStatus()).body(response);
     }
+
 }

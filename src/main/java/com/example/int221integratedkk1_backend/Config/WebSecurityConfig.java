@@ -18,6 +18,62 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+//@Configuration
+//@EnableWebSecurity
+//public class WebSecurityConfig {
+//
+//    @Autowired
+//    private JwtAuthFilter jwtAuthFilter;
+//
+//    @Autowired
+//    private VisibilityFilter visibilityFilter;
+//
+//    @Autowired
+//    private JwtUserDetailsService jwtUserDetailsService;
+//
+//    @Autowired
+//    private CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+//
+//    @Autowired
+//    private CustomAccessDeniedHandler customAccessDeniedHandler;
+//
+//    @Bean
+//    public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
+//        httpSecurity.csrf(csrf -> csrf.disable())
+//                .authorizeHttpRequests(authorize -> authorize
+//                        .requestMatchers("/error","/login").permitAll()
+//                        .requestMatchers(HttpMethod.GET).hasAuthority("PUBLIC")
+//                        .requestMatchers("/v3/boards/**").authenticated()
+//                        .anyRequest().authenticated())
+//                .exceptionHandling(exceptionHandling -> exceptionHandling
+//                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+//                        .accessDeniedHandler(customAccessDeniedHandler))
+//                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)   // Add JWT filter
+//                .addFilterAfter(visibilityFilter, JwtAuthFilter.class); // Add visibility filter
+//
+//
+//        return httpSecurity.build();
+//    }
+//
+//    @Bean
+//    public PasswordEncoder passwordEncoder() {
+//        return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+//    }
+//
+//    @Bean
+//    public AuthenticationProvider authenticationProvider() {
+//        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
+//        authenticationProvider.setUserDetailsService(jwtUserDetailsService);
+//        authenticationProvider.setPasswordEncoder(passwordEncoder());
+//        return authenticationProvider;
+//    }
+//
+//    @Bean
+//    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+//        return config.getAuthenticationManager();
+//    }
+//}
+
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig {
@@ -55,14 +111,14 @@ public class WebSecurityConfig {
 //        return httpSecurity.build();
         httpSecurity.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
+
                         .requestMatchers("/error","/login").permitAll()
                         .anyRequest().permitAll())
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint(customAuthenticationEntryPoint)
                         .accessDeniedHandler(customAccessDeniedHandler))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)   // Add JWT filter
-                .addFilterAfter(visibilityFilter, JwtAuthFilter.class); // Add visibility filter
-
+                .addFilterAfter(visibilityFilter, JwtAuthFilter.class); // Add visibility filter after JWT
 
         return httpSecurity.build();
     }

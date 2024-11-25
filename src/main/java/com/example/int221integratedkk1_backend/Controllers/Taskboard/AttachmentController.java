@@ -23,6 +23,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/attachment")
+@CrossOrigin(origins = {"http://localhost:5173", "http://ip23kk1.sit.kmutt.ac.th", "http://intproj23.sit.kmutt.ac.th", "http://intproj23.sit.kmutt.ac.th:8080", "http://ip23kk1.sit.kmutt.ac.th:8080"})
+
 public class AttachmentController {
 
     @Autowired
@@ -54,8 +56,9 @@ public class AttachmentController {
     @GetMapping("/{taskId}/{filename}")
     public ResponseEntity<Resource> getFile(@PathVariable int taskId, @PathVariable String filename) throws IOException {
         // Define the directory for attachments
+      
         // FE แก้เป็น filepath ตัวเอง
-        final String UPLOAD_DIR = "/Users/patcharanun/Downloads/Backend_Sprint5 2/src/main/resources/attachments";
+        final String UPLOAD_DIR = "/Users/HUAWEI/Documents/integrate2/Backend_Sprint4V3/src/main/resources/attachments";
 
         // Construct the full file path
         String filePath = UPLOAD_DIR + File.separator + taskId + File.separator + filename;

@@ -50,7 +50,10 @@ public class StatusService {
     @Transactional
     public StatusEntity createStatus(String boardId, String ownerId, @Valid StatusEntity statusEntity) {
 
-        BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//        BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
+
+        BoardEntity board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
 
         if (statusRepository.findByNameAndBoard_Id(statusEntity.getName(), boardId).isPresent()) {
@@ -61,35 +64,49 @@ public class StatusService {
         return statusRepository.save(statusEntity);
     }
 
+
     @Transactional
     public StatusEntity updateStatus(int id, String boardId, String ownerId, @Valid StatusEntity updatedStatus) throws ItemNotFoundException, DuplicateStatusException, UnManageStatusException {
 
-        BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
-                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
+//        // Check if the board exists and is owned by the user
+//        BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
 
+        // Fetch the existing status from the repository
         StatusEntity existingStatus = statusRepository.findById(id)
                 .orElseThrow(() -> new ItemNotFoundException("Status " + id + " not found"));
 
+        // Check if the status is protected (cannot be updated)
         if (isProtectedStatus(existingStatus)) {
             throw new UnManageStatusException("Cannot update No Status or Done");
         }
 
+        // Check if the updated status name is unique
         Optional<StatusEntity> duplicateStatus = statusRepository.findByNameAndBoard_Id(updatedStatus.getName().trim(), boardId);
         if (duplicateStatus.isPresent() && duplicateStatus.get().getId() != existingStatus.getId()) {
             throw new DuplicateStatusException("Status name must be unique within the board");
         }
 
+        // Update the status fields
         existingStatus.setName(updatedStatus.getName());
-        existingStatus.setDescription(updatedStatus.getDescription());
 
+        // Handle description field: check if it's null and set it accordingly
+        if (updatedStatus.getDescription() != null) {
+            existingStatus.setDescription(updatedStatus.getDescription());
+        } else {
+            existingStatus.setDescription(""); // set an  default value
+        }
+
+        // Save and return the updated status
         return statusRepository.save(existingStatus);
     }
 
 
+
     @Transactional
     public void deleteStatus(int id, String boardId, String ownerId) throws ItemNotFoundException, UnManageStatusException, UnauthorizedException {
-        boardRepository.findByIdAndOwnerId(boardId, ownerId)
-                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
+//        boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
 
         StatusEntity status = statusRepository.findById(id)
                 .orElseThrow(() -> new ItemNotFoundException("Status " + id + " not found"));
@@ -104,8 +121,8 @@ public class StatusService {
     @Transactional
     public int transferTasksAndDeleteStatus(int id, Integer transferToId, String boardId, String ownerId) throws ItemNotFoundException, UnManageStatusException, InvalidTransferIdException, UnauthorizedException {
 
-        boardRepository.findByIdAndOwnerId(boardId, ownerId)
-                .orElseThrow(() -> new UnauthorizedException("Board not found or user does not an owner"));
+//        boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//                .orElseThrow(() -> new UnauthorizedException("Board not found or user does not an owner"));
 
         StatusEntity statusToDelete = statusRepository.findById(id)
                 .orElseThrow(() -> new ItemNotFoundException("Status " + id + " not found"));
@@ -136,5 +153,4 @@ public class StatusService {
         return "No Status".equalsIgnoreCase(status.getName()) || "Done".equalsIgnoreCase(status.getName());
     }
 }
-
 

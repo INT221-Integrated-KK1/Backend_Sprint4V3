@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
+]
 import java.util.List;
 
 @Getter
@@ -18,3 +18,4 @@ public class InviteCollaboratorResponse {
     private int status;
     private List<?> data ;
 }
+

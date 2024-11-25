@@ -7,8 +7,6 @@ import com.example.int221integratedkk1_backend.Entities.Taskboard.Collaborator;
 import com.example.int221integratedkk1_backend.Entities.Taskboard.BoardEntity;
 import com.example.int221integratedkk1_backend.Exception.CollaboratorAlreadyExistsException;
 import com.example.int221integratedkk1_backend.Exception.ItemNotFoundException;
-import com.example.int221integratedkk1_backend.Exception.UnauthorizedException;
-import com.example.int221integratedkk1_backend.Repositories.Account.UserRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.CollabRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.BoardRepository;
 import com.example.int221integratedkk1_backend.Entities.Account.UsersEntity;
@@ -55,26 +53,29 @@ public class CollabService {
     public Collaborator addCollaborator(String boardId, CollabRequest collabRequest)
             throws CollaboratorAlreadyExistsException, ItemNotFoundException {
 
+        // Get the BoardEntity by ID
         BoardEntity board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ItemNotFoundException("Board not found with ID: " + boardId));
 
+        // Find the user based on email
         UsersEntity user = userService.findUserByEmail(collabRequest.getEmail());
         if (user == null) {
             throw new ItemNotFoundException("User not found with email: " + collabRequest.getEmail());
         }
 
+        // Check if the user is already a collaborator for the board
         if (collabRepository.existsByBoardIdAndCollabsId(boardId, user.getOid())) {
             throw new CollaboratorAlreadyExistsException("Collaborator already exists for this board.");
         }
 
-
+        // Check if the user is the board owner
         if (board.getOwnerId().equals(user.getOid())) {
             throw new CollaboratorAlreadyExistsException("Board owner cannot be added as a collaborator.");
         }
 
-
+        // Create new Collaborator and set attributes
         Collaborator collaborator = new Collaborator();
-        collaborator.setBoardId(boardId);
+        collaborator.setBoard(board); // Set BoardEntity instead of boardId
         collaborator.setCollabsId(user.getOid());
         collaborator.setCollabsName(user.getName());
         collaborator.setCollabsEmail(user.getEmail());
@@ -83,16 +84,19 @@ public class CollabService {
 
         collaborator.setOwnerId(board.getOwnerId());
 
+        // Save the collaborator
         collabRepository.save(collaborator);
 
         return collaborator;
     }
 
+
     public List<BoardEntity> getBoardsWhereUserIsCollaborator(String userId) {
         List<Collaborator> collaborators = collabRepository.findByCollabsId(userId);
-        List<String> boardIds = collaborators.stream().map(Collaborator::getBoardId).collect(Collectors.toList());
+        List<String> boardIds = collaborators.stream().map(c -> c.getBoard().getId()).collect(Collectors.toList()); // Changed to getBoard().getId()
         return boardRepository.findAllById(boardIds);
     }
+
 
     public Optional<Collaborator> getCollaboratorByBoardIdAndCollaboratorId(String boardId, String userId) {
         return collabRepository.findByBoardIdAndCollabsId(boardId, userId);
@@ -114,31 +118,43 @@ public class CollabService {
 
     public ResponseEntity<?> removeCollaborator(String boardId, String collabId, String userId) {
 
-        BoardEntity board = getBoardById(boardId);
+        Optional<BoardEntity> boardOpt = boardRepository.findById(boardId);
+        if (boardOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Board not found.");
+        }
+        BoardEntity board = boardOpt.get();
 
+        Optional<Collaborator> collaboratorOpt = collabRepository.findByBoardIdAndCollabsId(boardId, collabId);
+        if (collaboratorOpt.isEmpty()) {
+            if (board.getOwnerId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Collaborator not found.");
+            }
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
+        }
 
-        Collaborator collaborator = collabRepository.findByBoardIdAndCollabsId(boardId, collabId)
-                .orElseThrow(() -> {
-                    return new ItemNotFoundException("Collaborator not found on this board.");
-                });
+        Collaborator collaborator = collaboratorOpt.get();
 
+        if (!board.getOwnerId().equals(userId) && !collabId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
+        }
+
+        if (!board.getOwnerId().equals(userId) && !collabId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
+        }
 
         if (board.getOwnerId().equals(userId)) {
-
             collabRepository.delete(collaborator);
             return ResponseEntity.ok("Collaborator removed successfully.");
         }
 
-
         if (collabId.equals(userId)) {
-
             collabRepository.delete(collaborator);
             return ResponseEntity.ok("You have left the board.");
         }
 
-
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to remove this collaborator.");
     }
+
 
 
     private BoardEntity getBoardById(String boardId) {
@@ -149,6 +165,4 @@ public class CollabService {
         Optional<Collaborator> collaboratorOpt = collabRepository.findByBoardIdAndCollabsId(boardId, userId);
         return collaboratorOpt.map(Collaborator::getAccessLevel);
     }
-
-
 }

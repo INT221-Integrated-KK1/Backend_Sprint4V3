@@ -80,7 +80,10 @@ public class TaskService {
 
     @Transactional
     public TaskEntity createTask(String boardId, TaskRequest taskRequest, String ownerId) {
-        BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//        BoardEntity board = boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
+
+        BoardEntity board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
 
         StatusEntity status = statusRepository.findByIdAndBoard_Id(taskRequest.getStatus(), boardId)
@@ -125,8 +128,8 @@ public class TaskService {
         TaskEntity task = repository.findByIdAndBoard_Id(id, boardId)
                 .orElseThrow(() -> new ItemNotFoundException("Task not found in this board"));
 
-        boardRepository.findByIdAndOwnerId(boardId, ownerId)
-                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
+//        boardRepository.findByIdAndOwnerId(boardId, ownerId)
+//                .orElseThrow(() -> new ItemNotFoundException("Board not found or user does not an owner"));
 
         repository.delete(task);
         return true;

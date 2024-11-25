@@ -1,4 +1,8 @@
 package com.example.int221integratedkk1_backend.Services.Taskboard;
+
+import com.example.int221integratedkk1_backend.Entities.Account.UsersEntity;
+import com.example.int221integratedkk1_backend.Repositories.Account.UserRepository;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.example.int221integratedkk1_backend.DTOS.InviteCollaboratorResponse;
@@ -15,9 +19,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class InvitationService {
@@ -31,6 +34,9 @@ public class InvitationService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Autowired
+    private UserRepository userRepository;
+
     public InviteCollaboratorResponse inviteCollaborator(String boardId, String collaboratorEmail , String accessRight) {
         InviteCollaboratorResponse inviteCollaboratorResponse = new InviteCollaboratorResponse();
         if(boardId != null && !boardId.trim().isEmpty() || collaboratorEmail != null && collaboratorEmail.trim().isEmpty()){
@@ -42,6 +48,11 @@ public class InvitationService {
             }
 
             BoardEntity board = boardOpt.get();
+
+            String collaboratorName = userRepository.findByEmail(collaboratorEmail)
+                    .map(user -> user.getName()) // Assuming the User entity has a getName() method
+                    .orElse(null);
+
             InvitationEntity invitation = new InvitationEntity();
             invitation.setBoard(board);
             invitation.setCollaboratorEmail(collaboratorEmail);
@@ -60,6 +71,7 @@ public class InvitationService {
             sendInvitationEmail(collaboratorEmail,board, invitation);
             inviteCollaboratorResponse.setMessage("Invitation sent to " +  collaboratorEmail);
             inviteCollaboratorResponse.setStatus(200);
+
             return inviteCollaboratorResponse;
         }else{
             inviteCollaboratorResponse.setMessage("Required Board Id or CollaboratorEmail");
@@ -166,24 +178,55 @@ public class InvitationService {
         return inviteCollaboratorResponse;
     }
 
+
+//    public InviteCollaboratorResponse getPendingInvitations(String boardId) {
+//        InviteCollaboratorResponse inviteCollaboratorResponse = new InviteCollaboratorResponse();
+//        if(Objects.nonNull(boardId)){
+//            List<InvitationEntity> invitationEntityList = invitationRepository.findByBoard_IdAndStatus(boardId, InvitationStatus.PENDING);
+//            inviteCollaboratorResponse.setMessage("Get pending Invitation Success");
+//            //inviteCollaboratorResponse.setData(invitationEntityList);
+//            inviteCollaboratorResponse.setStatus(200);
+//
+//            return inviteCollaboratorResponse;
+//        }else{
+//            inviteCollaboratorResponse.setMessage("Board Id can't be null");
+//            inviteCollaboratorResponse.setStatus(400);
+//            return inviteCollaboratorResponse;
+//        }
+//    }
+
     public InviteCollaboratorResponse getPendingInvitations(String boardId) {
         InviteCollaboratorResponse inviteCollaboratorResponse = new InviteCollaboratorResponse();
-        if(Objects.nonNull(boardId)){
-            List<InvitationEntity> invitationEntityList = invitationRepository.findByBoard_IdAndStatus(boardId, InvitationStatus.PENDING);
-            inviteCollaboratorResponse.setMessage("Get pending Invitation Success");
-            inviteCollaboratorResponse.setData(invitationEntityList);
-            inviteCollaboratorResponse.setStatus(200);
 
-            return inviteCollaboratorResponse;
-        }else{
+        if (Objects.isNull(boardId) || boardId.trim().isEmpty()) {
+
             inviteCollaboratorResponse.setMessage("Board Id can't be null");
             inviteCollaboratorResponse.setStatus(400);
             return inviteCollaboratorResponse;
         }
+
+
+        List<InvitationEntity> invitationEntityList = invitationRepository.findByBoard_IdAndStatus(boardId, InvitationStatus.PENDING);
+
+        List<Map<String, Object>> pendingInvitations = invitationEntityList.stream().map(invitation -> {
+            Map<String, Object> invitationDetails = new HashMap<>();
+            invitationDetails.put("Name", getUsernameFromEmail(invitation.getCollaboratorEmail())); // Fetch username from email
+            invitationDetails.put("email", invitation.getCollaboratorEmail());
+            invitationDetails.put("accessRight", invitation.getAccessRight().name());
+            invitationDetails.put("Status", invitation.getStatus());
+            return invitationDetails;
+        }).collect(Collectors.toList());
+
+        inviteCollaboratorResponse.setMessage("Get pending Invitation Success");
+        inviteCollaboratorResponse.setData(pendingInvitations);
+        inviteCollaboratorResponse.setStatus(200);
+
+        return inviteCollaboratorResponse;
     }
 
     private void sendInvitationEmail(String collaboratorEmail, BoardEntity board  , InvitationEntity invitation) {
-        String invitationLink = generateInvitationLink(invitation.getId());
+        String invitationLink = generateInvitationLink(invitation.getId(), board.getId());
+
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(collaboratorEmail);
         message.setSubject("Invitation to collaborate on board " + board.getBoardName());
@@ -241,8 +284,14 @@ public class InvitationService {
 
     // FE แก้ ลิงค์เชิญผ่านเมล
 
-    private String generateInvitationLink(Long invitationId) {
-        String baseUrl = "http://localhost:5173/board/"+ invitationId + "/collab/invitations"; // Backend endpoint for accepting invitations
+    private String generateInvitationLink(Long invitationId, String boardId) {
+        String baseUrl = "http://localhost:5173/board/"+ boardId + "/collab/invitations/" + invitationId; // Backend endpoint for accepting invitations
         return baseUrl;
+    }
+
+    private String getUsernameFromEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(UsersEntity::getName)
+                .orElse("Unknown User");
     }
 }

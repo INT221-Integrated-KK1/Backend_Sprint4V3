@@ -16,7 +16,7 @@ public class BoardEntity {
 
     @Id
     @Column(name = "boardId", length = 10)
-    private String id;
+    public String id;
 
     @Column(name = "boardname", nullable = false, length = 120)
     private String boardName;
