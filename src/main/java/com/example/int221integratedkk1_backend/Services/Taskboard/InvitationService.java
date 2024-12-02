@@ -1,24 +1,24 @@
 package com.example.int221integratedkk1_backend.Services.Taskboard;
 
 import com.example.int221integratedkk1_backend.Entities.Account.UsersEntity;
+import com.example.int221integratedkk1_backend.Entities.Taskboard.*;
 import com.example.int221integratedkk1_backend.Repositories.Account.UserRepository;
 
+import com.example.int221integratedkk1_backend.Repositories.Taskboard.CollabRepository;
 import org.apache.commons.lang3.StringUtils;
 
 import com.example.int221integratedkk1_backend.DTOS.InviteCollaboratorResponse;
-import com.example.int221integratedkk1_backend.Entities.Taskboard.AccessRight;
-import com.example.int221integratedkk1_backend.Entities.Taskboard.BoardEntity;
-import com.example.int221integratedkk1_backend.Entities.Taskboard.InvitationEntity;
-import com.example.int221integratedkk1_backend.Entities.Taskboard.InvitationStatus;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.BoardRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.InvitationRepository;
-import org.apache.catalina.util.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,51 +37,87 @@ public class InvitationService {
     @Autowired
     private UserRepository userRepository;
 
-    public InviteCollaboratorResponse inviteCollaborator(String boardId, String collaboratorEmail , String accessRight) {
+    @Autowired
+    private CollabRepository collabRepository;
+
+    public InviteCollaboratorResponse inviteCollaborator(String boardId, String collaboratorEmail, String accessRight, String userId) {
         InviteCollaboratorResponse inviteCollaboratorResponse = new InviteCollaboratorResponse();
-        if(boardId != null && !boardId.trim().isEmpty() || collaboratorEmail != null && collaboratorEmail.trim().isEmpty()){
-            Optional<BoardEntity> boardOpt = boardRepository.findById(boardId);
-            if (boardOpt.isEmpty()) {
-                inviteCollaboratorResponse.setMessage("Board not found");
-                inviteCollaboratorResponse.setStatus(404);
-                return inviteCollaboratorResponse;
-            }
 
-            BoardEntity board = boardOpt.get();
-
-            String collaboratorName = userRepository.findByEmail(collaboratorEmail)
-                    .map(user -> user.getName()) // Assuming the User entity has a getName() method
-                    .orElse(null);
-
-            InvitationEntity invitation = new InvitationEntity();
-            invitation.setBoard(board);
-            invitation.setCollaboratorEmail(collaboratorEmail);
-            invitation.setStatus(InvitationStatus.PENDING);
-            if(StringUtils.endsWithIgnoreCase(accessRight , String.valueOf(AccessRight.READ))){
-                invitation.setAccessRight(AccessRight.READ);
-            }else if(StringUtils.endsWithIgnoreCase(accessRight , String.valueOf(AccessRight.WRITE))){
-                invitation.setAccessRight(AccessRight.WRITE);
-            }else{
-                inviteCollaboratorResponse.setMessage("AccessRight incorrect Please Check format (READ , WRITE) only");
-                inviteCollaboratorResponse.setStatus(400);
-                return inviteCollaboratorResponse;
-            }
-
-            invitationRepository.save(invitation);
-            sendInvitationEmail(collaboratorEmail,board, invitation);
-            inviteCollaboratorResponse.setMessage("Invitation sent to " +  collaboratorEmail);
-            inviteCollaboratorResponse.setStatus(200);
-
-            return inviteCollaboratorResponse;
-        }else{
-            inviteCollaboratorResponse.setMessage("Required Board Id or CollaboratorEmail");
-            inviteCollaboratorResponse.setStatus(400);
+        // Validate inputs
+        if (boardId == null || boardId.trim().isEmpty() || collaboratorEmail == null || collaboratorEmail.trim().isEmpty()) {
+            inviteCollaboratorResponse.setMessage("Required Board Id or Collaborator Email");
+            inviteCollaboratorResponse.setStatus(400); // Bad Request
             return inviteCollaboratorResponse;
         }
+
+        // Validate mail if exists
+        Optional<UsersEntity> userOpt = userRepository.findByEmail(collaboratorEmail);
+        if (userOpt.isEmpty()) {
+            inviteCollaboratorResponse.setMessage("User not found.");
+            inviteCollaboratorResponse.setStatus(404);
+            return inviteCollaboratorResponse;
+        }
+
+        UsersEntity user = userOpt.get();
+        // Find the board
+        Optional<BoardEntity> boardOpt = boardRepository.findById(boardId);
+        if (boardOpt.isEmpty()) {
+            inviteCollaboratorResponse.setMessage("Board not found");
+            inviteCollaboratorResponse.setStatus(404);
+            return inviteCollaboratorResponse;
+        }
+
+        BoardEntity board = boardOpt.get();
+
+        // Verify if the requesting user is the board owner
+        if (!board.getOwnerId().equals(userId)) {
+            inviteCollaboratorResponse.setMessage("Only the board owner can add collaborators.");
+            inviteCollaboratorResponse.setStatus(403); // Forbidden
+            return inviteCollaboratorResponse;
+        }
+
+        // Check if there is already a PENDING invitation for this board and email
+        boolean isPending = invitationRepository.existsByBoard_IdAndCollaboratorEmailAndStatus(boardId, collaboratorEmail, InvitationStatus.PENDING);
+        if (isPending) {
+            inviteCollaboratorResponse.setMessage("The user is already a pending collaborator of this board");
+            inviteCollaboratorResponse.setStatus(409); // Conflict
+            return inviteCollaboratorResponse;
+        }
+
+        // Create the invitation
+        InvitationEntity invitation = new InvitationEntity();
+        invitation.setBoard(board);
+        invitation.setCollaboratorEmail(collaboratorEmail);
+        invitation.setStatus(InvitationStatus.PENDING);
+
+        // Validate and set access right
+        if (StringUtils.endsWithIgnoreCase(accessRight, String.valueOf(AccessRight.READ))) {
+            invitation.setAccessRight(AccessRight.READ);
+        } else if (StringUtils.endsWithIgnoreCase(accessRight, String.valueOf(AccessRight.WRITE))) {
+            invitation.setAccessRight(AccessRight.WRITE);
+        } else {
+            inviteCollaboratorResponse.setMessage("AccessRight incorrect. Please check format (READ, WRITE) only.");
+            inviteCollaboratorResponse.setStatus(400); // Bad Request
+            return inviteCollaboratorResponse;
+        }
+
+
+        invitationRepository.save(invitation);
+        String inviterName = userRepository.findById(userId)
+                .map(UsersEntity::getName)
+                .orElse("Unknown User");
+
+        sendInvitationEmail(collaboratorEmail, board, invitation, inviterName);
+
+        inviteCollaboratorResponse.setMessage("Invitation sent to " + collaboratorEmail);
+        inviteCollaboratorResponse.setStatus(200); // Success
+        return inviteCollaboratorResponse;
     }
+
 
     @Transactional
     public InviteCollaboratorResponse acceptInvitation(Long invitationId) {
+
         InviteCollaboratorResponse inviteCollaboratorResponse = new InviteCollaboratorResponse();
         if(Objects.isNull(invitationId)){
             inviteCollaboratorResponse.setMessage("InvitationId Can't be Null");
@@ -97,7 +133,19 @@ public class InvitationService {
 
         InvitationEntity invitation = invitationOpt.get();
         invitation.setStatus(InvitationStatus.ACCEPTED);
-        // Logic to add collaborator to the board could be here.
+
+        Collaborator collaborator = new Collaborator();
+        collaborator.setBoard(invitation.getBoard());
+        collaborator.setCollabsEmail(invitation.getCollaboratorEmail());
+        collaborator.setAccessLevel(invitation.getAccessRight());
+        collaborator.setCollabsName(userRepository.findByEmail(invitation.getCollaboratorEmail())
+                .map(user -> user.getName())
+                .orElse("Unknown User"));
+        collaborator.setOwnerId(invitation.getBoard().getOwnerId());
+        collaborator.setAddedOn(new Timestamp(System.currentTimeMillis()));
+
+        collabRepository.save(collaborator);
+
         inviteCollaboratorResponse.setMessage("Invitation accepted success.");
         inviteCollaboratorResponse.setStatus(200);
         return inviteCollaboratorResponse;
@@ -172,7 +220,8 @@ public class InvitationService {
 
         InvitationEntity invitation = invitationOpt.get();
         invitation.setStatus(InvitationStatus.DECLINED);
-        // Logic to add collaborator to the board could be here.
+        invitationRepository.delete(invitation);
+
         inviteCollaboratorResponse.setMessage("Invitation declined success.");
         inviteCollaboratorResponse.setStatus(200);
         return inviteCollaboratorResponse;
@@ -224,18 +273,42 @@ public class InvitationService {
         return inviteCollaboratorResponse;
     }
 
-    private void sendInvitationEmail(String collaboratorEmail, BoardEntity board  , InvitationEntity invitation) {
-        String invitationLink = generateInvitationLink(invitation.getId(), board.getId());
+//    private void sendInvitationEmail(String collaboratorEmail, BoardEntity board  , InvitationEntity invitation) {
+//        String invitationLink = generateInvitationLink(invitation.getId(), board.getId());
+//
+//        SimpleMailMessage message = new SimpleMailMessage();
+//        message.setTo(collaboratorEmail);
+//        message.setSubject("Invitation to collaborate on board " + board.getBoardName());
+//        message.setText("You have been invited to collaborate on the board: " + board.getBoardName()
+//                + "\nPlease click the following link to accept or decline the invitation: "
+//                + invitationLink); // Replace <invitation link> with the actual URL
+//
+//        mailSender.send(message);
+//    }
+private void sendInvitationEmail(String collaboratorEmail, BoardEntity board, InvitationEntity invitation, String inviterName) {
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(collaboratorEmail);
-        message.setSubject("Invitation to collaborate on board " + board.getBoardName());
-        message.setText("You have been invited to collaborate on the board: " + board.getBoardName()
-                + "\nPlease click the following link to accept or decline the invitation: "
-                + invitationLink); // Replace <invitation link> with the actual URL
+    String invitationLink = generateInvitationLink(invitation.getId(), board.getId());
 
+    SimpleMailMessage message = new SimpleMailMessage();
+    message.setTo(collaboratorEmail);
+    message.setSubject("ITBKK-" + board.getBoardName().toUpperCase() + " Invitation to Collaborate");
+    message.setText(inviterName + " has invited you to collaborate with "
+            + invitation.getAccessRight() + " access right on '"
+            + board.getBoardName() + "' board.\n\n"
+            + "You can accept or decline this invitation at: " + invitationLink);
+
+    message.setFrom("noreply@intproj23.sit.kmutt.ac.th");
+    message.setReplyTo("noreply@intproj23.sit.kmutt.ac.th");
+
+    try {
         mailSender.send(message);
+    } catch (Exception e) {
+
+        System.err.println("Error sending email: " + e.getMessage());
+        System.out.println("We could not send an email to " + collaboratorEmail
+                + ", he/she can accept the invitation at " + invitationLink);
     }
+}
 
     @Transactional
     public InviteCollaboratorResponse cancelInvitation(Long invitationId, String userId) {

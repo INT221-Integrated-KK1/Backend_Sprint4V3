@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface InvitationRepository extends JpaRepository<InvitationEntity, Long> {
     List<InvitationEntity> findByBoard_IdAndStatus(String boardId, InvitationStatus status);
+    boolean existsByBoard_IdAndCollaboratorEmailAndStatus(String boardId, String collaboratorEmail, InvitationStatus status);
 }
