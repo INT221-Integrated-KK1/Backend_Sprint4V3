@@ -12,9 +12,9 @@ import java.sql.Timestamp;
 @Table(name = "Collaborator", schema = "ITB-KK-V3")
 public class Collaborator {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // AUTO_INCREMENT
-    @Column(name = "Id")
-    private int id;
+//    @GeneratedValue(strategy = GenerationType.IDENTITY) // AUTO_INCREMENT
+//    @Column(name = "Id")
+//    private int id;
 
     @Column(name = "collabsId", length = 36, nullable = false)
     private String collabsId;

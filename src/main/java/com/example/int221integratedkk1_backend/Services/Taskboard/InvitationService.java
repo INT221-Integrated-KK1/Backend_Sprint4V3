@@ -5,6 +5,7 @@ import com.example.int221integratedkk1_backend.Entities.Taskboard.*;
 import com.example.int221integratedkk1_backend.Repositories.Account.UserRepository;
 
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.CollabRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import com.example.int221integratedkk1_backend.DTOS.InviteCollaboratorResponse;
@@ -23,6 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class InvitationService {
 
     @Autowired
@@ -115,41 +117,110 @@ public class InvitationService {
     }
 
 
+//    @Transactional
+//    public InviteCollaboratorResponse acceptInvitation(Long invitationId) {
+//
+//        InviteCollaboratorResponse inviteCollaboratorResponse = new InviteCollaboratorResponse();
+//        if(Objects.isNull(invitationId)){
+//            inviteCollaboratorResponse.setMessage("InvitationId Can't be Null");
+//            inviteCollaboratorResponse.setStatus(400);
+//            return inviteCollaboratorResponse;
+//        }
+//        Optional<InvitationEntity> invitationOpt = invitationRepository.findById(invitationId);
+//        if (invitationOpt.isEmpty()) {
+//            inviteCollaboratorResponse.setMessage("Invitation not found");
+//            inviteCollaboratorResponse.setStatus(404);
+//            return inviteCollaboratorResponse;
+//        }
+//
+//        InvitationEntity invitation = invitationOpt.get();
+//        invitation.setStatus(InvitationStatus.ACCEPTED);
+//
+//        Collaborator collaborator = new Collaborator();
+//        collaborator.setBoard(invitation.getBoard());
+//        collaborator.setCollabsEmail(invitation.getCollaboratorEmail());
+//        collaborator.setAccessLevel(invitation.getAccessRight());
+//        collaborator.setCollabsName(userRepository.findByEmail(invitation.getCollaboratorEmail())
+//                .map(user -> user.getName())
+//                .orElse("Unknown User"));
+//        collaborator.setOwnerId(invitation.getBoard().getOwnerId());
+//        collaborator.setCollabsId(userRepository.findByEmail(invitation.getCollaboratorEmail())
+//                .map(user -> user.getOid()).orElse(null));
+//        collaborator.setAddedOn(new Timestamp(System.currentTimeMillis()));
+//
+//        collabRepository.save(collaborator);
+//
+//        inviteCollaboratorResponse.setMessage("Invitation accepted success.");
+//        inviteCollaboratorResponse.setStatus(200);
+//        return inviteCollaboratorResponse;
+//    }
+
     @Transactional
     public InviteCollaboratorResponse acceptInvitation(Long invitationId) {
-
         InviteCollaboratorResponse inviteCollaboratorResponse = new InviteCollaboratorResponse();
-        if(Objects.isNull(invitationId)){
-            inviteCollaboratorResponse.setMessage("InvitationId Can't be Null");
+
+        // Validate invitationId
+        if (Objects.isNull(invitationId)) {
+            inviteCollaboratorResponse.setMessage("InvitationId can't be null.");
             inviteCollaboratorResponse.setStatus(400);
             return inviteCollaboratorResponse;
         }
+
+        // Find the invitation
         Optional<InvitationEntity> invitationOpt = invitationRepository.findById(invitationId);
         if (invitationOpt.isEmpty()) {
-            inviteCollaboratorResponse.setMessage("Invitation not found");
+            inviteCollaboratorResponse.setMessage("Invitation not found.");
             inviteCollaboratorResponse.setStatus(404);
             return inviteCollaboratorResponse;
         }
 
         InvitationEntity invitation = invitationOpt.get();
-        invitation.setStatus(InvitationStatus.ACCEPTED);
+        log.info("Invitation Details: {}", invitation);
 
+        // Check if the email exists
+        Optional<UsersEntity> userOpt = userRepository.findByEmail(invitation.getCollaboratorEmail());
+        if (userOpt.isEmpty()) {
+            inviteCollaboratorResponse.setMessage("Collaborator email not found in the system.");
+            inviteCollaboratorResponse.setStatus(404);
+            return inviteCollaboratorResponse;
+        }
+
+        UsersEntity user = userOpt.get();
+        log.info("User Details: {}", user);
+
+        // Update invitation status to ACCEPTED
+        invitation.setStatus(InvitationStatus.ACCEPTED);
+        invitationRepository.save(invitation); // Save the updated status
+        log.info("Invitation status updated to ACCEPTED.");
+
+        // Create a new collaborator
         Collaborator collaborator = new Collaborator();
         collaborator.setBoard(invitation.getBoard());
         collaborator.setCollabsEmail(invitation.getCollaboratorEmail());
+        collaborator.setCollabsName(user.getName());
+        collaborator.setCollabsId(user.getOid()); // Use Oid from UsersEntity
         collaborator.setAccessLevel(invitation.getAccessRight());
-        collaborator.setCollabsName(userRepository.findByEmail(invitation.getCollaboratorEmail())
-                .map(user -> user.getName())
-                .orElse("Unknown User"));
         collaborator.setOwnerId(invitation.getBoard().getOwnerId());
         collaborator.setAddedOn(new Timestamp(System.currentTimeMillis()));
 
-        collabRepository.save(collaborator);
+        log.info("Collaborator Details: {}", collaborator);
 
-        inviteCollaboratorResponse.setMessage("Invitation accepted success.");
+        // Save the collaborator
+        try {
+            collabRepository.save(collaborator);
+            log.info("Collaborator saved successfully.");
+        } catch (Exception e) {
+            log.error("Error while saving collaborator: {}", e.getMessage());
+            inviteCollaboratorResponse.setMessage("Failed to add collaborator: " + e.getMessage());
+            inviteCollaboratorResponse.setStatus(500);
+            return inviteCollaboratorResponse;
+        }
+
+        inviteCollaboratorResponse.setMessage("Invitation accepted successfully.");
         inviteCollaboratorResponse.setStatus(200);
         return inviteCollaboratorResponse;
     }
+
 
     public InviteCollaboratorResponse editInvitation(Long invitationId, String status, String accessRight) {
         InviteCollaboratorResponse response = new InviteCollaboratorResponse();
