@@ -330,10 +330,14 @@ public class InvitationService {
 
         List<Map<String, Object>> pendingInvitations = invitationEntityList.stream().map(invitation -> {
             Map<String, Object> invitationDetails = new HashMap<>();
-            invitationDetails.put("Name", getUsernameFromEmail(invitation.getCollaboratorEmail())); // Fetch username from email
+            invitationDetails.put("id", invitation.getId());
+            invitationDetails.put("boardId", invitation.getBoard().getId());
+            invitationDetails.put("boardName", invitation.getBoard().getBoardName());
+            invitationDetails.put("ownerName", getOwnerName(invitation.getBoard().getOwnerId()));
+            invitationDetails.put("name", getUsernameFromEmail(invitation.getCollaboratorEmail()));
             invitationDetails.put("email", invitation.getCollaboratorEmail());
             invitationDetails.put("accessRight", invitation.getAccessRight().name());
-            invitationDetails.put("Status", invitation.getStatus());
+            invitationDetails.put("status", invitation.getStatus());
             return invitationDetails;
         }).collect(Collectors.toList());
 
@@ -344,7 +348,13 @@ public class InvitationService {
         return inviteCollaboratorResponse;
     }
 
-//    private void sendInvitationEmail(String collaboratorEmail, BoardEntity board  , InvitationEntity invitation) {
+    private String getOwnerName(String ownerId) {
+        return userRepository.findById(ownerId)
+                .map(UsersEntity::getName)
+                .orElse("Unknown Owner");
+    }
+
+    //    private void sendInvitationEmail(String collaboratorEmail, BoardEntity board  , InvitationEntity invitation) {
 //        String invitationLink = generateInvitationLink(invitation.getId(), board.getId());
 //
 //        SimpleMailMessage message = new SimpleMailMessage();
