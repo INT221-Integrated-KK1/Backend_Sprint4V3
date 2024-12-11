@@ -16,6 +16,7 @@ import java.util.List;
 public class InviteCollaboratorResponse {
     private String message;
     private int status;
+    private Long invitationId;
     private List<?> data ;
 }
 

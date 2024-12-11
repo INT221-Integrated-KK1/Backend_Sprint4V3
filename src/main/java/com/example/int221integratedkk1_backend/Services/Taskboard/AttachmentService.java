@@ -10,6 +10,7 @@ import com.example.int221integratedkk1_backend.Exception.ItemNotFoundException;
 import com.example.int221integratedkk1_backend.Exception.ValidateInputException;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.AttachmentRepository;
 import com.example.int221integratedkk1_backend.Repositories.Taskboard.TaskRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +27,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class AttachmentService {
     @Autowired
     private TaskRepository repository;
@@ -66,7 +68,7 @@ public class AttachmentService {
 
         for (MultipartFile file : files) {
             // Validate file size
-            if (file.getSize() > MAX_FILE_SIZE) {
+            if (file.getSize() >= MAX_FILE_SIZE) {
                 errors.put(file.getOriginalFilename(), "File exceeds the maximum size of " + MAX_FILE_SIZE / (1024 * 1024) + " MB.");
                 continue;
             }

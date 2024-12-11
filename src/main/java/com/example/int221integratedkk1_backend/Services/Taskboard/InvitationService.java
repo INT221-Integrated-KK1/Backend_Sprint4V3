@@ -61,6 +61,7 @@ public class InvitationService {
         }
 
         UsersEntity user = userOpt.get();
+
         // Find the board
         Optional<BoardEntity> boardOpt = boardRepository.findById(boardId);
         if (boardOpt.isEmpty()) {
@@ -71,10 +72,21 @@ public class InvitationService {
 
         BoardEntity board = boardOpt.get();
 
+        // Debugging: Log IDs for validation
+        log.info("Owner ID: {}", board.getOwnerId());
+        log.info("Collaborator ID: {}", user.getOid());
+
         // Verify if the requesting user is the board owner
         if (!board.getOwnerId().equals(userId)) {
             inviteCollaboratorResponse.setMessage("Only the board owner can add collaborators.");
             inviteCollaboratorResponse.setStatus(403); // Forbidden
+            return inviteCollaboratorResponse;
+        }
+
+        // Ensure the owner cannot be invited as a collaborator
+        if (board.getOwnerId().equals(user.getOid())) {
+            inviteCollaboratorResponse.setMessage("The board owner cannot be invited as a collaborator.");
+            inviteCollaboratorResponse.setStatus(400); // Bad Request
             return inviteCollaboratorResponse;
         }
 
@@ -103,7 +115,6 @@ public class InvitationService {
             return inviteCollaboratorResponse;
         }
 
-
         invitationRepository.save(invitation);
         String inviterName = userRepository.findById(userId)
                 .map(UsersEntity::getName)
@@ -113,9 +124,9 @@ public class InvitationService {
 
         inviteCollaboratorResponse.setMessage("Invitation sent to " + collaboratorEmail);
         inviteCollaboratorResponse.setStatus(200); // Success
+        inviteCollaboratorResponse.setInvitationId(invitation.getId());
         return inviteCollaboratorResponse;
     }
-
 
 //    @Transactional
 //    public InviteCollaboratorResponse acceptInvitation(Long invitationId) {
